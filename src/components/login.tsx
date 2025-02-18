@@ -1,12 +1,12 @@
 "use client";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState } from "react";
 import { Form, Input } from "@heroui/react";
 import { Button } from "@heroui/react";
 import { Card, CardBody } from "@heroui/react";
 import * as actions from "@/actions";
 
 export default function LoginForm() {
-  const [, action, isLoading] = useActionState(actions.signIn, {
+  const [formState, action, isLoading] = useActionState(actions.signIn, {
     errors: {},
   });
 
@@ -43,6 +43,12 @@ export default function LoginForm() {
                 className="w-full border border-gray-300 rounded-xl"
               />
             </div>
+
+            {formState.errors._form ? (
+              <div className="p-2 bg-red-200 border rounded border-red-400">
+                {formState.errors._form}
+              </div>
+            ) : null}
             <Button
               isLoading={isLoading}
               type="submit"
