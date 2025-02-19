@@ -1,6 +1,6 @@
 "use server";
 
-import { PUBLIC_ROOM_ID } from "@/constants";
+import { COOKIE_NAME, PUBLIC_ROOM_ID } from "@/constants";
 import { db } from "@/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,22 +10,21 @@ export async function signIn(_, formData: any): Promise<any> {
     const newUser = await db.user.create({
       data: {
         username: formData.get("username"),
-        email: "default@default.com",
+        email: formData.get("email"),
         password: formData.get("password"),
         role: "USER",
       },
     });
-    console.log("=========NEW USER======", newUser);
     const cookieStore = await cookies();
 
     cookieStore.set({
-      name: "userinformation",
+      name: COOKIE_NAME,
       value: JSON.stringify({
         username: newUser.username,
         email: newUser.email,
         id: newUser.id,
       }),
-      httpOnly: true,
+      // httpOnly: true,
       path: "/",
     });
 

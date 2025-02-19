@@ -3,13 +3,18 @@
 import { useState, useEffect } from "react";
 import { Input } from "@heroui/react";
 import { Button } from "@heroui/react";
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 import { Card, CardBody } from "@heroui/react";
 import useSession from "@/hooks/useSession";
+import { COOKIE_NAME } from "@/constants";
+import { socket } from "@/socket";
 
 export default function ChatBox() {
-  const [socket, setSocket] = useState(null);
-  const { data: session } = useSession();
+  const { data: session } = useSession(COOKIE_NAME);
+  const [room, setRoom] = useState("");
+  const [joined, setJoined] = useState([]);
+  const [userName, setUserName] = useState("");
+  console.log(session);
   const [messages, setMessages] = useState([
     { text: "Hello! How can I help you?", sender: "bot" },
   ]);
@@ -18,16 +23,10 @@ export default function ChatBox() {
 
   const sendMessage = () => {
     if (!input.trim()) return;
-
+    const data = { room, message: input, sender: userName };
     setMessages([...messages, { text: input, sender: "user" }]);
+    socket.emit("message", data);
     setInput("");
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { text: "This is a bot response!", sender: "bot" },
-      ]);
-    }, 1000);
   };
 
   const handleKeyDown = (e) => {
@@ -41,41 +40,23 @@ export default function ChatBox() {
     setIsMinimized(!isMinimized); // Đổi trạng thái khi click vào header
     if (!isMinimized) {
       // join room
+      if (room && userName) {
+        socket.emit("join-room", { room, username: session?.username });
+      }
     }
   };
 
   useEffect(() => {
-    // 1. Kết nối socket
-    const socketInit = async () => {
-      await fetch("/api/socket");
-      const socket = io();
-      setSocket(socket);
-
-      // Lắng nghe tin nhắn mới
-      socket.on("new-message", (message) => {
-        setMessages((prev) => [...prev, message]);
-      });
-    };
-    socketInit();
-
-    // 2. Join chat và lấy tin nhắn cũ
-    const joinChat = async () => {
-      const response = await fetch("/api/chat/join", {
-        method: "POST",
-        body: JSON.stringify({ userId: session.user.id }),
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await response.json();
-      setMessages(data.messages);
-    };
-    if (session?.user) {
-      joinChat();
-    }
-
+    socket.on("message", (data) => {
+      setMessages((prev) => [...prev, data]);
+    });
+    socket.on("specific_user_joined", (message) => {
+      setMessages((prev) => [...prev, { sender: "system", text: message }]);
+    });
     return () => {
-      socket?.disconnect();
+      socket.off("specific_user_joined");
     };
-  }, [session]);
+  }, []);
 
   return (
     <div className="fixed bottom-0 right-0 m-4">

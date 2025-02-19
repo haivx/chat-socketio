@@ -30,7 +30,17 @@ export default function LoginForm() {
               <Input
                 name="username"
                 type="text"
+                isRequired
                 placeholder="Username"
+                className="w-full border border-gray-300 rounded-xl"
+              />
+            </div>
+            <div>
+              <Input
+                name="email"
+                type="text"
+                isRequired
+                placeholder="Email"
                 className="w-full border border-gray-300 rounded-xl"
               />
             </div>
