@@ -62,7 +62,7 @@ export default function LoginForm() {
             <Button
               isLoading={isLoading}
               type="submit"
-              className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition"
+              className="w-full bg-[#2d9a4d] text-white py-3 rounded-lg hover:bg-blue-600 transition"
             >
               Login
             </Button>

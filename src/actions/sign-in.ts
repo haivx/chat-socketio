@@ -7,26 +7,26 @@ import { redirect } from "next/navigation";
 
 export async function signIn(_, formData: any): Promise<any> {
   try {
-    const newUser = await db.user.create({
-      data: {
-        username: formData.get("username"),
-        email: formData.get("email"),
-        password: formData.get("password"),
-        role: "USER",
+    let currentUser = null;
+    currentUser = await db.user.findFirst({
+      where: {
+        OR: [
+          { username: formData.get("username") },
+          { email: formData.get("email") },
+        ],
       },
     });
-    const cookieStore = await cookies();
 
-    cookieStore.set({
-      name: COOKIE_NAME,
-      value: JSON.stringify({
-        username: newUser.username,
-        email: newUser.email,
-        id: newUser.id,
-      }),
-      // httpOnly: true,
-      path: "/",
-    });
+    if (!currentUser) {
+      currentUser = await db.user.create({
+        data: {
+          username: formData.get("username"),
+          email: formData.get("email"),
+          password: formData.get("password"),
+          role: "USER",
+        },
+      });
+    }
 
     // Khởi tạo room
     const existingRoom = await db.conversation.findUnique({
@@ -40,6 +40,20 @@ export async function signIn(_, formData: any): Promise<any> {
         },
       });
     }
+
+    const cookieStore = await cookies();
+
+    cookieStore.set({
+      name: COOKIE_NAME,
+      value: JSON.stringify({
+        username: currentUser.username,
+        email: currentUser.email,
+        id: currentUser.id,
+        roomChat: PUBLIC_ROOM_ID,
+      }),
+      // httpOnly: true,
+      path: "/",
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       return {

@@ -1,41 +1,39 @@
 import { createServer } from "node:http";
-import next from "next";
 import { Server } from "socket.io";
 
-const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOSTNAME || "localhost";
-const port = parseInt(process.env.PORT || "3000", 10);
+const port = 4000; // Sử dụng port khác với Next.js
 
-const app = next({ dev, hostname, port });
-const handle = app.getRequestHandler();
+const httpServer = createServer();
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:3000", // Origin của ứng dụng Next.js
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
-app.prepare().then(() => {
-  const httpServer = createServer(handle);
-  const io = new Server(httpServer);
+io.on("connection", (socket) => {
+  console.log("User connected", socket.id);
 
-  io.on("connection", (socket) => {
-    console.log("User connected", socket.id);
-
-    socket.on("join-room", ({ room, username }) => {
-      socket.join(room);
-      console.log(`User ${username} joined room ${room}`);
-      socket
-        .to(room)
-        .emit("specific_user_joined", `User ${username} joined room ${room}`);
-    });
-
-    socket.on("message", ({ room, message, sender }) => {
-      socket.join(room);
-      console.log(`Message from ${sender} in room ${room}: ${message}`);
-      socket.to(room).emit("message", { sender: "system", message });
-    });
+  socket.on("join-room", ({ room, username }) => {
+    socket.join(room);
+    console.log(`User ${username} joined room ${room}`);
+    socket
+      .to(room)
+      .emit("system", { message: `User ${username} joined room ${room}` });
   });
 
-  io.on("disconect", (socket) => {
-    console.log(`user disconnected: ${socket.id}`);
+  socket.on("message", ({ room, message, sender }) => {
+    console.log(`Message from ${sender} in room ${room}: ${message}`);
+    // Gửi cho tất cả mọi người trong room, bao gồm người gửi
+    io.to(room).emit("message", { sender, message });
   });
 
-  httpServer.listen(port, () => {
-    console.log(`Server is running on http://${hostname}/${port}`);
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
   });
+});
+
+httpServer.listen(port, () => {
+  console.log(`Socket.IO server running on http://localhost:${port}`);
 });

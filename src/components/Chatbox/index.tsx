@@ -3,28 +3,32 @@
 import { useState, useEffect } from "react";
 import { Input } from "@heroui/react";
 import { Button } from "@heroui/react";
-import io, { Socket } from "socket.io-client";
 import { Card, CardBody } from "@heroui/react";
 import useSession from "@/hooks/useSession";
 import { COOKIE_NAME } from "@/constants";
 import { socket } from "@/socket";
 
 export default function ChatBox() {
-  const { data: session } = useSession(COOKIE_NAME);
-  const [room, setRoom] = useState("");
-  const [joined, setJoined] = useState([]);
-  const [userName, setUserName] = useState("");
-  console.log(session);
+  const {
+    data: { user_credentials: userCredentials },
+  } = useSession(COOKIE_NAME);
   const [messages, setMessages] = useState([
-    { text: "Hello! How can I help you?", sender: "bot" },
+    { message: "Hello! How can I help you?", sender: "bot" },
   ]);
   const [input, setInput] = useState("");
-  const [isMinimized, setIsMinimized] = useState(true); // Thêm state để theo dõi trạng thái thu gọn
+  const [isMinimized, setIsMinimized] = useState(true);
 
   const sendMessage = () => {
     if (!input.trim()) return;
-    const data = { room, message: input, sender: userName };
-    setMessages([...messages, { text: input, sender: "user" }]);
+    const data = {
+      room: userCredentials?.roomChat,
+      message: input,
+      sender: userCredentials?.username,
+    };
+    // setMessages([
+    //   ...messages,
+    //   { message: input, sender: userCredentials?.username },
+    // ]);
     socket.emit("message", data);
     setInput("");
   };
@@ -37,24 +41,62 @@ export default function ChatBox() {
   };
 
   const toggleMinimize = () => {
-    setIsMinimized(!isMinimized); // Đổi trạng thái khi click vào header
-    if (!isMinimized) {
-      // join room
-      if (room && userName) {
-        socket.emit("join-room", { room, username: session?.username });
+    const newValue = !isMinimized;
+    setIsMinimized(newValue);
+
+    if (!newValue && userCredentials?.username) {
+      console.log("Joining room:", userCredentials?.roomChat);
+      // Kiểm tra kết nối
+      if (socket.disconnected) {
+        socket.connect();
+      }
+      // Đảm bảo socket đã kết nối trước khi join room
+      if (socket.connected) {
+        socket.emit("join-room", {
+          room: userCredentials?.roomChat,
+          username: userCredentials?.username,
+        });
+      } else {
+        console.log("Socket not connected, waiting...");
+        socket.on("connect", () => {
+          socket.emit("join-room", {
+            room: userCredentials?.roomChat,
+            username: userCredentials?.username,
+          });
+        });
       }
     }
   };
 
   useEffect(() => {
+    if (socket.disconnected) {
+      socket.connect();
+    }
+
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
     socket.on("message", (data) => {
       setMessages((prev) => [...prev, data]);
     });
-    socket.on("specific_user_joined", (message) => {
-      setMessages((prev) => [...prev, { sender: "system", text: message }]);
+
+    socket.on("system", (data) => {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "system", message: data.message },
+      ]);
     });
+
     return () => {
-      socket.off("specific_user_joined");
+      socket.off("connect");
+      socket.off("connect_error");
+      socket.off("system");
+      socket.off("message");
     };
   }, []);
 
@@ -67,24 +109,34 @@ export default function ChatBox() {
       >
         <div
           onClick={toggleMinimize}
-          className="bg-blue-500 text-white p-2 cursor-pointer rounded-t-lg"
+          className="bg-[#2d9a4d] text-white p-2 cursor-pointer rounded-t-lg"
         >
           Chat Box
         </div>
         {!isMinimized && (
           <CardBody className="h-full overflow-y-auto flex flex-col space-y-2">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`p-2 rounded-lg max-w-xs ${
-                  msg.sender === "user"
-                    ? "bg-blue-500 text-white self-end"
-                    : "bg-gray-200 text-black self-start"
-                }`}
-              >
-                {msg.text}
-              </div>
-            ))}
+            {messages.map((msg, index) => {
+              if (msg.sender === "system") {
+                return (
+                  <div key={index} className={`text-[10px] p-2 max-w-xs`}>
+                    {msg.message}
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={index}
+                  className={`p-2 rounded-lg max-w-xs ${
+                    msg.sender !== userCredentials.username
+                      ? "bg-gray-200 text-black self-start"
+                      : "bg-[#76b172] text-white self-end"
+                  }`}
+                >
+                  <p className="text-sm font-bold">{msg.sender}</p>
+                  {msg.message}
+                </div>
+              );
+            })}
           </CardBody>
         )}
         {!isMinimized && (
@@ -98,8 +150,8 @@ export default function ChatBox() {
                 className="flex-grow py-3 px-1 rounded-l-lg border-0 focus:ring-2 focus:ring-blue-500"
               />
               <Button
-                onClick={sendMessage}
-                className="bg-blue-500 text-white p-3 rounded-r-lg hover:bg-blue-600 transition"
+                onPress={sendMessage}
+                className="bg-[#2d9a4d] text-white p-3 rounded-r-lg hover:bg-[#0f4d31] transition"
               >
                 Send
               </Button>
