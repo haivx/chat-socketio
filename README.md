@@ -9,3 +9,7 @@ yarn dev:all
 ```
 
 Please note that: to test what happen, please open different browser because the authentication is based on cookie.
+
+## Database
+
+Check prisma folder

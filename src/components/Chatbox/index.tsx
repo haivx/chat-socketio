@@ -25,10 +25,7 @@ export default function ChatBox() {
       message: input,
       sender: userCredentials?.username,
     };
-    // setMessages([
-    //   ...messages,
-    //   { message: input, sender: userCredentials?.username },
-    // ]);
+
     socket.emit("message", data);
     setInput("");
   };
