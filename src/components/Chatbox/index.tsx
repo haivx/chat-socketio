@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { Input } from "@heroui/react";
-import { Button } from "@heroui/react";
-import { Card, CardBody } from "@heroui/react";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Button,
+  Card,
+  CardBody,
+} from "@heroui/react";
+
 import useSession from "@/hooks/useSession";
+import { IoIosAdd } from "react-icons/io";
 import { COOKIE_NAME } from "@/constants";
 import { socket } from "@/socket";
 
@@ -144,6 +153,24 @@ export default function ChatBox() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
+                startContent={
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <IoIosAdd className="cursor-pointer" />
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      aria-label="Action event example"
+                      onAction={(key) => alert(key)}
+                      color="primary"
+                      className="text-black"
+                    >
+                      <DropdownItem key="upload">
+                        Upload Image/file
+                      </DropdownItem>
+                      <DropdownItem key="position">Share position</DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                }
                 className="flex-grow py-3 px-1 rounded-l-lg border-0 focus:ring-2 focus:ring-blue-500"
               />
               <Button
