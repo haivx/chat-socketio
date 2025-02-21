@@ -23,10 +23,11 @@ io.on("connection", (socket) => {
       .emit("system", { message: `User ${username} joined room ${room}` });
   });
 
-  socket.on("message", ({ room, message, sender }) => {
+  socket.on("message", ({ room, message, sender, attachment }) => {
+    console.log("attachment", attachment);
     console.log(`Message from ${sender} in room ${room}: ${message}`);
     // Gửi cho tất cả mọi người trong room, bao gồm người gửi
-    io.to(room).emit("message", { sender, message });
+    io.to(room).emit("message", { sender, message, attachment });
   });
 
   socket.on("disconnect", () => {

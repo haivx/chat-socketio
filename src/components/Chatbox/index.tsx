@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Key } from "react";
 import { Input } from "@heroui/react";
 import {
   Dropdown,
@@ -16,13 +16,16 @@ import useSession from "@/hooks/useSession";
 import { IoIosAdd } from "react-icons/io";
 import { COOKIE_NAME } from "@/constants";
 import { socket } from "@/socket";
+import Image from "next/image";
 
 export default function ChatBox() {
   const {
     data: { user_credentials: userCredentials },
   } = useSession(COOKIE_NAME);
+  const [imageSrc, setImageSrc] = useState(null);
+  const inputRef = useRef(null);
   const [messages, setMessages] = useState([
-    { message: "Hello! How can I help you?", sender: "bot" },
+    { message: "Hello! How can I help you?", sender: "bot", attachment: null },
   ]);
   const [input, setInput] = useState("");
   const [isMinimized, setIsMinimized] = useState(true);
@@ -46,6 +49,40 @@ export default function ChatBox() {
     }
   };
 
+  const handleAction = (key: Key) => {
+    if (key === "upload") {
+      if (inputRef.current) {
+        inputRef.current?.click();
+      }
+    }
+  };
+
+  const onUpload = async (e) => {
+    const file = e.target.files?.[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const ress = await response.json();
+
+    if (ress.success) {
+      const data = {
+        room: userCredentials?.roomChat,
+        message: "attachtment",
+        sender: userCredentials?.username,
+        attachment: ress.fileUrl,
+      };
+
+      socket.emit("message", data);
+    } else {
+      throw new Error(ress.error || "Upload thất bại");
+    }
+  };
+  console.log(messages);
   const toggleMinimize = () => {
     const newValue = !isMinimized;
     setIsMinimized(newValue);
@@ -94,7 +131,7 @@ export default function ChatBox() {
     socket.on("system", (data) => {
       setMessages((prev) => [
         ...prev,
-        { sender: "system", message: data.message },
+        { sender: "system", message: data.message, attachment: null },
       ]);
     });
 
@@ -122,6 +159,18 @@ export default function ChatBox() {
         {!isMinimized && (
           <CardBody className="h-full overflow-y-auto flex flex-col space-y-2">
             {messages.map((msg, index) => {
+              if (msg.attachment) {
+                return (
+                  <Image
+                    alt=""
+                    key={index}
+                    width={200}
+                    height={100}
+                    className="object-cover"
+                    src={msg.attachment}
+                  />
+                );
+              }
               if (msg.sender === "system") {
                 return (
                   <div key={index} className={`text-[10px] p-2 max-w-xs`}>
@@ -160,7 +209,7 @@ export default function ChatBox() {
                     </DropdownTrigger>
                     <DropdownMenu
                       aria-label="Action event example"
-                      onAction={(key) => alert(key)}
+                      onAction={handleAction}
                       color="primary"
                       className="text-black"
                     >
@@ -183,6 +232,12 @@ export default function ChatBox() {
           </div>
         )}
       </Card>
+      <input
+        type="file"
+        className="hidden"
+        ref={inputRef}
+        onChange={onUpload}
+      />
     </div>
   );
 }
