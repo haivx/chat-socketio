@@ -10,29 +10,14 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: "Không tìm thấy file hình ảnh" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "File not found" }, { status: 400 });
     }
 
-    // Kiểm tra loại file
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        {
-          error:
-            "Loại file không được hỗ trợ. Vui lòng upload JPEG, PNG, WebP hoặc GIF",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Giới hạn kích thước file (10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // limit file size (10MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "File quá lớn. Kích thước tối đa là 10MB" },
+        { error: "File size is too big. The maximum size is 5MB" },
         { status: 400 }
       );
     }
@@ -44,8 +29,9 @@ export async function POST(request: NextRequest) {
     // Tạo tên file ngẫu nhiên với extension gốc
     const originalName = file.name;
     const extension = originalName.split(".").pop();
-    const randomName = crypto.randomBytes(16).toString("hex");
-    const fileName = `${randomName}.${extension}`;
+    const nameFile = originalName.split(".").shift();
+    const randomName = crypto.randomBytes(2).toString("hex");
+    const fileName = `${nameFile}.${randomName}.${extension}`;
 
     // Đường dẫn lưu file (trong thư mục public)
     const uploadDir = join(process.cwd(), "public", "uploads");
@@ -60,12 +46,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       fileUrl,
-      message: "Upload thành công",
+      name: fileName,
+      message: "Upload successful",
     });
   } catch (error) {
-    console.error("Lỗi upload:", error);
+    console.error("Error upload:", error);
     return NextResponse.json(
-      { error: "Đã xảy ra lỗi khi upload file" },
+      { error: "Something went wrong" },
       { status: 500 }
     );
   }
@@ -75,6 +62,6 @@ export async function POST(request: NextRequest) {
 export const config = {
   api: {
     bodyParser: false,
-    responseLimit: "12mb",
+    responseLimit: "10mb",
   },
 };

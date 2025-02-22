@@ -14,16 +14,16 @@ import {
 
 import useSession from "@/hooks/useSession";
 import { IoIosAdd } from "react-icons/io";
-import { COOKIE_NAME } from "@/constants";
+import { COOKIE_NAME, FileType } from "@/constants";
 import { socket } from "@/socket";
-import Image from "next/image";
+import Attachment from "./Attachment";
+import { isImageFile } from "@/util";
 
 export default function ChatBox() {
   const {
     data: { user_credentials: userCredentials },
   } = useSession(COOKIE_NAME);
-  const [imageSrc, setImageSrc] = useState(null);
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [messages, setMessages] = useState([
     { message: "Hello! How can I help you?", sender: "bot", attachment: null },
   ]);
@@ -42,9 +42,9 @@ export default function ChatBox() {
     setInput("");
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault(); // Ngăn việc xuống dòng
+      e.preventDefault();
       sendMessage();
     }
   };
@@ -57,10 +57,10 @@ export default function ChatBox() {
     }
   };
 
-  const onUpload = async (e) => {
-    const file = e.target.files?.[0];
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] as File;
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file as Blob);
 
     const response = await fetch("/api/upload", {
       method: "POST",
@@ -74,21 +74,25 @@ export default function ChatBox() {
         room: userCredentials?.roomChat,
         message: "attachtment",
         sender: userCredentials?.username,
-        attachment: ress.fileUrl,
+        attachment: {
+          data: ress.fileUrl,
+          name: ress.name,
+          type: isImageFile(file) ? FileType.IMG : FileType.OTHER,
+        },
       };
 
       socket.emit("message", data);
     } else {
+      alert(ress.error || "Upload failed");
       throw new Error(ress.error || "Upload thất bại");
     }
   };
-  console.log(messages);
+
   const toggleMinimize = () => {
     const newValue = !isMinimized;
     setIsMinimized(newValue);
 
     if (!newValue && userCredentials?.username) {
-      console.log("Joining room:", userCredentials?.roomChat);
       // Kiểm tra kết nối
       if (socket.disconnected) {
         socket.connect();
@@ -100,7 +104,6 @@ export default function ChatBox() {
           username: userCredentials?.username,
         });
       } else {
-        console.log("Socket not connected, waiting...");
         socket.on("connect", () => {
           socket.emit("join-room", {
             room: userCredentials?.roomChat,
@@ -117,7 +120,7 @@ export default function ChatBox() {
     }
 
     socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
+      console.info("Socket connected:", socket.id);
     });
 
     socket.on("connect_error", (error) => {
@@ -160,16 +163,7 @@ export default function ChatBox() {
           <CardBody className="h-full overflow-y-auto flex flex-col space-y-2">
             {messages.map((msg, index) => {
               if (msg.attachment) {
-                return (
-                  <Image
-                    alt=""
-                    key={index}
-                    width={200}
-                    height={100}
-                    className="object-cover"
-                    src={msg.attachment}
-                  />
-                );
+                return <Attachment key={index} file={msg.attachment} />;
               }
               if (msg.sender === "system") {
                 return (

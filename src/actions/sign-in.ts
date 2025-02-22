@@ -6,6 +6,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function signIn(_, formData: any): Promise<any> {
+  const username = formData.get("username");
+  const email = formData.get("email");
+  if (!username || !email) {
+    return {
+      errors: {
+        _form: "Please fill in the form",
+      },
+    };
+  }
   try {
     let currentUser = null;
     currentUser = await db.user.findFirst({

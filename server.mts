@@ -24,7 +24,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("message", ({ room, message, sender, attachment }) => {
-    console.log("attachment", attachment);
     console.log(`Message from ${sender} in room ${room}: ${message}`);
     // Gửi cho tất cả mọi người trong room, bao gồm người gửi
     io.to(room).emit("message", { sender, message, attachment });
