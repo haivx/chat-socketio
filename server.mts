@@ -20,7 +20,7 @@ io.on("connection", (socket) => {
     console.log(`User ${username} joined room ${room}`);
     socket
       .to(room)
-      .emit("system", { message: `User ${username} joined room ${room}` });
+      .emit("system", { message: `${username} joined room ${room}` });
   });
 
   socket.on("message", ({ room, message, sender, attachment }) => {

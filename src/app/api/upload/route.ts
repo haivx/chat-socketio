@@ -1,4 +1,3 @@
-// app/api/upload/route.ts
 import { writeFile } from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { join } from "path";
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File not found" }, { status: 400 });
     }
 
-    // limit file size (10MB)
+    // limit file size (5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(

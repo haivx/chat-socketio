@@ -32,7 +32,7 @@ const Attachment = ({ file }: { file: AttachmentType | null }) => {
     );
   }
   return (
-    <div className="flex justify-center items-center gap-3 p-3 bg-cyan-100 rounded-lg">
+    <div className="flex justify-center items-center gap-3 p-3 bg-[#f0f0f0] rounded-lg">
       <FcFile className="w-[30px] h-[30px]" />
       <span className="text-xs cursor-pointer" onClick={onDownloadFile}>
         {file.name}

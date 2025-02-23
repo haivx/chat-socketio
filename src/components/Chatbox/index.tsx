@@ -59,6 +59,7 @@ export default function ChatBox() {
 
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] as File;
+    if (!file) return;
     const formData = new FormData();
     formData.append("file", file as Blob);
 
@@ -181,8 +182,14 @@ export default function ChatBox() {
                       : "bg-[#76b172] text-white self-end"
                   }`}
                 >
-                  <p className="text-sm font-bold">{msg.sender}</p>
-                  {msg.message}
+                  <p
+                    className={`text-sm font-bold ${
+                      msg.sender === userCredentials.username && "hidden"
+                    }`}
+                  >
+                    {msg.sender}
+                  </p>
+                  <span className="text-sm">{msg.message}</span>
                 </div>
               );
             })}
