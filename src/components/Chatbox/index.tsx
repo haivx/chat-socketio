@@ -1,62 +1,41 @@
 "use client";
 
-import { useState, useEffect, useRef, Key } from "react";
-import { Input } from "@heroui/react";
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Button,
-  Card,
-  CardBody,
-} from "@heroui/react";
-
+import { useState, useEffect, useRef } from "react";
+import { useClickOutside } from "@/hooks/useClickOutside";
+import useChatSocket from "@/hooks/useChatSocket";
+import data from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
+import { Card, CardBody } from "@heroui/react";
 import useSession from "@/hooks/useSession";
-import { IoIosAdd } from "react-icons/io";
 import { COOKIE_NAME, FileType } from "@/constants";
 import { socket } from "@/socket";
-import Attachment from "./Attachment";
 import { isImageFile } from "@/util";
+import ChatInput from "./ChatInput";
+import ChatMessages from "./ChatMessages";
 
 export default function ChatBox() {
   const {
     data: { user_credentials: userCredentials },
   } = useSession(COOKIE_NAME);
+  const emojiRef = useRef(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [messages, setMessages] = useState([
-    { message: "Hello! How can I help you?", sender: "bot", attachment: null },
-  ]);
+  const messseRef = useRef<HTMLInputElement | null>(null);
   const [input, setInput] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    const data = {
-      room: userCredentials?.roomChat,
-      message: input,
-      sender: userCredentials?.username,
-    };
+  useClickOutside(emojiRef, () => setShowEmojiPicker(false));
 
-    socket.emit("message", data);
-    setInput("");
+  const addEmoji = (emoji: any) => {
+    if (!messseRef.current) return;
+    const { selectionStart, selectionEnd } = messseRef.current;
+    const newVal =
+      input.slice(0, selectionStart || 0) +
+      emoji.native +
+      input.slice(selectionEnd || 0);
+    setInput(newVal);
+    setShowEmojiPicker(false);
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const handleAction = (key: Key) => {
-    if (key === "upload") {
-      if (inputRef.current) {
-        inputRef.current?.click();
-      }
-    }
-  };
-
   const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] as File;
     if (!file) return;
@@ -147,98 +126,54 @@ export default function ChatBox() {
     };
   }, []);
 
+  const { messages, sendMessage, sendFile } = useChatSocket({
+    room: userCredentials.roomChat,
+    username: userCredentials.username,
+  });
+
   return (
     <div className="fixed bottom-0 right-0 m-4">
-      <Card
-        className={`w-64 ${
-          isMinimized ? "h-12" : "h-96"
-        } border border-gray-300 rounded-lg shadow-lg transition-all`}
-      >
-        <div
-          onClick={toggleMinimize}
-          className="bg-[#2d9a4d] text-white p-2 cursor-pointer rounded-t-lg"
+      <div className="relative">
+        <Card
+          className={`w-72 ${
+            isMinimized ? "h-12" : "h-96"
+          } border border-gray-300 rounded-lg shadow-lg transition-all`}
         >
-          Chat Box
-        </div>
-        {!isMinimized && (
-          <CardBody className="h-full overflow-y-auto flex flex-col space-y-2">
-            {messages.map((msg, index) => {
-              if (msg.attachment) {
-                return <Attachment key={index} file={msg.attachment} />;
-              }
-              if (msg.sender === "system") {
-                return (
-                  <div key={index} className={`text-[10px] p-2 max-w-xs`}>
-                    {msg.message}
-                  </div>
-                );
-              }
-              return (
-                <div
-                  key={index}
-                  className={`p-2 rounded-lg max-w-xs ${
-                    msg.sender !== userCredentials.username
-                      ? "bg-gray-200 text-black self-start"
-                      : "bg-[#76b172] text-white self-end"
-                  }`}
-                >
-                  <p
-                    className={`text-sm font-bold ${
-                      msg.sender === userCredentials.username && "hidden"
-                    }`}
-                  >
-                    {msg.sender}
-                  </p>
-                  <span className="text-sm">{msg.message}</span>
-                </div>
-              );
-            })}
-          </CardBody>
-        )}
-        {!isMinimized && (
-          <div className="mt-2">
-            <div className="flex items-center bg-white rounded-lg shadow-md">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                startContent={
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <IoIosAdd className="cursor-pointer" />
-                    </DropdownTrigger>
-                    <DropdownMenu
-                      aria-label="Action event example"
-                      onAction={handleAction}
-                      color="primary"
-                      className="text-black"
-                    >
-                      <DropdownItem key="upload">
-                        Upload Image/file
-                      </DropdownItem>
-                      <DropdownItem key="position">Share position</DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                }
-                className="flex-grow py-3 px-1 rounded-l-lg border-0 focus:ring-2 focus:ring-blue-500"
-              />
-              <Button
-                onPress={sendMessage}
-                className="bg-[#2d9a4d] text-white p-3 rounded-r-lg hover:bg-[#0f4d31] transition"
-              >
-                Send
-              </Button>
-            </div>
+          <div
+            onClick={toggleMinimize}
+            className="bg-[#2d9a4d] text-white p-2 cursor-pointer rounded-t-lg"
+          >
+            Chat Box
+          </div>
+          {!isMinimized && (
+            <>
+              <CardBody className="h-full overflow-y-auto flex flex-col space-y-2">
+                <ChatMessages
+                  messages={messages}
+                  currentUser={userCredentials.username}
+                />
+              </CardBody>
+              <ChatInput onSend={sendMessage} onFileUpload={sendFile} />
+            </>
+          )}
+        </Card>
+        <input
+          type="file"
+          className="hidden"
+          ref={inputRef}
+          onChange={onUpload}
+        />
+        {showEmojiPicker && (
+          <div className="absolute bottom-14 mb-2 -left-[50%]" ref={emojiRef}>
+            <Picker
+              data={data}
+              onEmojiSelect={addEmoji}
+              theme="light"
+              previewPosition="none"
+            />
           </div>
         )}
-      </Card>
-      <input
-        type="file"
-        className="hidden"
-        ref={inputRef}
-        onChange={onUpload}
-      />
+      </div>
     </div>
   );
 }
