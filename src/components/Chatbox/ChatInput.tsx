@@ -60,7 +60,7 @@ export default function ChatInput({ onSend, onFileUpload }: ChatInputProps) {
   };
 
   return (
-    <div className="mt-2 relative">
+    <div className="mt-2">
       <div className="flex items-center bg-white rounded-lg shadow-md">
         <Input
           ref={inputRef}
