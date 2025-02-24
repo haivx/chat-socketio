@@ -71,7 +71,7 @@ export default function ChatInput({ onSend, onFileUpload }: ChatInputProps) {
           startContent={
             <Dropdown>
               <DropdownTrigger>
-                <IoIosAdd className="cursor-pointer" />
+                <IoIosAdd className="cursor-pointer w-6 h-6" />
               </DropdownTrigger>
               <DropdownMenu
                 aria-label="Action event example"

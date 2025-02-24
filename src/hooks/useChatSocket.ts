@@ -33,7 +33,7 @@ export default function useChatSocket({ room, username }: ChatSocketProps) {
   };
 
   useEffect(() => {
-    if (!username) return;
+    if (!username || !room) return;
     joinRoom();
 
     socket.on("connect", () => console.info("Socket connected:", socket.id));

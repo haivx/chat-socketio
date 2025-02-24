@@ -7,8 +7,8 @@ import useSession from "@/hooks/useSession";
 import { COOKIE_NAME, FileType } from "@/constants";
 import { socket } from "@/socket";
 import { isImageFile } from "@/util";
-import ChatInput from "./ChatInput";
-import ChatMessages from "./ChatMessages";
+import ChatInput from "./subcomponents/ChatInput";
+import ChatMessages from "./subcomponents/ChatMessages";
 
 export default function ChatBox() {
   const {
@@ -75,8 +75,8 @@ export default function ChatBox() {
   };
 
   const { messages, sendMessage, sendFile } = useChatSocket({
-    room: userCredentials.roomChat,
-    username: userCredentials.username,
+    room: userCredentials?.roomChat,
+    username: userCredentials?.username,
   });
 
   return (
